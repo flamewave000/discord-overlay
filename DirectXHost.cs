@@ -143,7 +143,7 @@ namespace DirectXHost
 			_dxForm.ClientSize = new System.Drawing.Size(Constants.StartWidth, Constants.StartHeight);
 			_dxForm.MinimumSize = _dxForm.Bounds.Size;
 			_dxForm.StartPosition = FormStartPosition.CenterScreen;
-			_dxForm.FormBorderStyle = FormBorderStyle.Sizable;
+			_dxForm.FormBorderStyle = FormBorderStyle.SizableToolWindow;
 			_dxForm.GotFocus += (s, e) => ShouldShowOverlayFrame(true);
 			_dxForm.LostFocus += (s, e) => ShouldShowOverlayFrame(false);
 			_dxForm.TopMost = false;

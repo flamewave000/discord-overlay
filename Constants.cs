@@ -8,7 +8,7 @@ namespace DirectXHost
 {
     public static class Constants
     {
-        public const string WindowTitle = "Discord Overlay Host: DirectX";
+        public const string WindowTitle = "Discord Overlay Host";
         public const int StartWidth = 768;
         public const int StartHeight = 432;
         public const int RefreshRate = 60;
