@@ -9,7 +9,7 @@ This overlay host is to provide a desktop overlay for when you're playing games 
 ### To start the overlay program
 |Steps|Images|
 |-|-|
-|Extract and run the "Discord Overlay.exe" file.|![](.assets\download.png)![](.assets/run.png)|
+|Extract and run the "Discord Overlay.exe" file. [Found in Releases](https://github.com/flamewave000/discord-overlay/releases)|![](.assets\download.png)![](.assets/run.png)|
 |Move the "Discord Overlay Host" window somewhere out of the way (but must stay on screen somewhere, even in the background).|![](.assets/organize.png)|
 |Place and resize the "Discord Overlay" window anywhere you want.|![](.assets/organize2.png)|
 
