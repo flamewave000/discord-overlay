@@ -7,34 +7,26 @@ This overlay host is to provide a desktop overlay for when you're playing games 
 ## How to Use
 
 ### To start the overlay program
-
-1. ![](.assets\download.png)![](.assets/run.png)
-   Extract and run the "Discord Overlay.exe" file.
-1. ![](.assets/organize.png)Move the "Discord Overlay Host" window somewhere out of the way (but must stay on screen somewhere, even in the background).
-1. ![](.assets/organize2.png)Place and resize the "Discord Overlay" window anywhere you want.
+|Steps|Images|
+|-|-|
+|Extract and run the "Discord Overlay.exe" file.|![](.assets\download.png)![](.assets/run.png)|
+|Move the "Discord Overlay Host" window somewhere out of the way (but must stay on screen somewhere, even in the background).|![](.assets/organize.png)|
+|Place and resize the "Discord Overlay" window anywhere you want.|![](.assets/organize2.png)|
 
 ### To link the overlay with Discord
-
-1. Make sure Discord Overlay Host is currently running (see above instructions for downloading and running it).
-1. ![](.assets/open-settings.png)
-   Open Discord's program settings
-1. ![](.assets/enable-overlay.png)
-   Go to the "Overlay" settings and make sure "Enable In-game overlay" is turned on.
-1. ![](.assets/add-game.png)
-   Go to the "Game Activity" settings, and click the "Add it!" blue text.
-1. ![](.assets/select-overlay.png)
-   Select "Discord Overlay Host" from the dropdown menu
-1. ![](.assets/accept.png)
-   Click "Add Game"
-1. ![](.assets/toggle-game-overlay.png)
-   You should now see this big green banner, but make sure click the monitor icon on the right to Toggle ON the overlay for the program.
-1. ![](.assets/overlay-is-on.png)
-   Once that is turned on, click the settings close button. After a few moments (be patient) the Discord Overlay program should appear in the Discord Overlay Host and Discord Overlay windows simultaneously.
-1. JOIN A VOICE CHAT!
-1. ![](.assets/overlay-window-visible.png)
-   When EITHER window is FOCUSED, you will be able to see the "Discord Overlay" window and resize it as would any normal window.
-1. ![](.assets/overlay-window-gone.png)
-   But once you UNFOCUS the windows (ie. click on your browser window), the "Discord Overlay" window frame will vanish, and only Discord's overlay content will remain.
+|Steps|Images|
+|-|-|
+|Make sure Discord Overlay Host is currently running (see above instructions for downloading and running it).||
+|Open Discord's program settings|![](.assets/open-settings.png)|
+|Go to the "Overlay" settings and make sure "Enable In-game overlay" is turned on.|![](.assets/enable-overlay.png)|
+|Go to the "Game Activity" settings, and click the "Add it!" blue text.|![](.assets/add-game.png)|
+|Select "Discord Overlay Host" from the dropdown menu|![](.assets/select-overlay.png)|
+|Click "Add Game"|![](.assets/accept.png)|
+|You should now see this big green banner, but make sure click the monitor icon on the right to Toggle ON the overlay for the program.|![](.assets/toggle-game-overlay.png)|
+|Once that is turned on, click the settings close button. After a few moments (be patient) the Discord Overlay program should appear in the Discord Overlay Host and Discord Overlay windows simultaneously.|![](.assets/overlay-is-on.png)|
+|JOIN A VOICE CHAT!||
+|When EITHER window is FOCUSED, you will be able to see the "Discord Overlay" window and resize it as would any normal window.|![](.assets/overlay-window-visible.png)|
+|But once you UNFOCUS the windows (ie. click on your browser window), the "Discord Overlay" window frame will vanish, and only Discord's overlay content will remain.|![](.assets/overlay-window-gone.png)|
 
 The Discord Overlay Host window must always be open and NOT minimized, but you can let it get buried by other windows.
 
