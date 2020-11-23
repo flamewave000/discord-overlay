@@ -11,7 +11,7 @@ namespace DirectXHost
         static void Main()
         {
             DirectXHost dxHost = new DirectXHost();
-            dxHost.Run();
+            dxHost.Run().Wait();
         }
     }
 }
