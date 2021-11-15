@@ -1,11 +1,12 @@
-﻿using System;
-using System.Windows.Forms;
-using SharpDX.Windows;
+﻿using SharpDX.Windows;
+using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using System.Security.Permissions;
 using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Linq;
+using DirectXHost.Extensions;
 
 namespace DirectXHost
 {
@@ -111,8 +112,12 @@ namespace DirectXHost
 			}
 		}
 
-		bool _drag = false;
-		Point _wstart, _mstart;
+		private bool _drag = false;
+		private Point _wstart, _mstart;
+		private long time = 0L;
+		private long[] timeHistory = new long[30];
+		private int timeIndex = 0;
+		public double FPS { get; private set; }
 
 		private void updateImageBounds()
 		{
@@ -217,18 +222,18 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 		private MainMenu GetMenu() => new MainMenu(new MenuItem[]
 			{
 				new MenuItem("?", _dxForm_HelpRequested),
-				new MenuItem($"{(Settings.overlayClickable ? '☑' : '☐')} Overlay Clickable", (s,e) => {
+				new MenuItem($"{(Settings.overlayClickable ? '☑' : '☐')} Overlay Clickable", (menuItem,e) => {
 					Settings.overlayClickable = !Settings.overlayClickable;
-					_dxForm.Menu = GetMenu();
 					ShouldShowOverlayFrame(Settings.overlayClickable);
 					Settings.Save();
+					(menuItem as MenuItem).Text = $"{(Settings.overlayClickable ? '☑' : '☐')} Overlay Clickable";
 				}),
-				new MenuItem($"{(Settings.savePositions ? '☑' : '☐')} Save Window Positions", (s,e) => {
+				new MenuItem($"{(Settings.savePositions ? '☑' : '☐')} Save Window Positions", (menuItem,e) => {
 					Settings.savePositions = !Settings.savePositions;
-					_dxForm.Menu = GetMenu();
 					Settings.Save();
+					(menuItem as MenuItem).Text = $"{(Settings.savePositions ? '☑' : '☐')} Save Window Positions";
 				}),
-				new MenuItem("Transparency Colour", (s,e) =>
+				new MenuItem("Transparency Colour", (menuItem,e) =>
 				{
 					var dialog = new ColorDialog();
 					dialog.Color = Settings.transparencyKey;
@@ -242,6 +247,17 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 						Settings.Save();
 						ShouldShowOverlayFrame(true);
 					}
+				}),
+				new MenuItem($"{Settings.frameRate} FPS", (menuItem, e) => {
+					switch(Settings.frameRate)
+					{
+						case (int)Settings.FrameRate._5: Settings.frameRate = 10; break;
+						case (int)Settings.FrameRate._10: Settings.frameRate = 20; break;
+						case (int)Settings.FrameRate._20: Settings.frameRate = 30; break;
+						case (int)Settings.FrameRate._30: Settings.frameRate = 5; break;
+					}
+					Settings.Save();
+					(menuItem as MenuItem).Text = $"{Settings.frameRate} FPS";
 				}),
 				new MenuItem("            Version 2.0")
 			});
@@ -292,6 +308,13 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 		{
 			_graphics.ClearRenderTargetView();
 			_graphics.PresentSwapChain();
+			long end = DateTime.Now.Ticks;
+			long duration = end - time;
+			time = end;
+			timeHistory[timeIndex] = duration;
+			timeIndex = (timeIndex + 1) % timeHistory.Length;
+			FPS = 1000.0 / new TimeSpan(timeHistory.Sum() / timeHistory.Length).TotalMilliseconds;
+			System.Threading.Thread.Sleep(Math.Max(0, (1000 / 10) - (int)new TimeSpan(duration).TotalMilliseconds));
 		}
 
 		#region IDisposable Support

@@ -9,6 +9,14 @@ namespace DirectXHost
 {
 	static class Settings
 	{
+		public enum FrameRate
+		{
+			_5 = 5,
+			_10 = 10,
+			_20 = 20,
+			_30 = 30
+		}
+
 		[Serializable]
 		private struct Data
 		{
@@ -17,6 +25,7 @@ namespace DirectXHost
 			public Rect overlayRect;
 			public Rect containerRect;
 			public Color transparencyKey;
+			public int frameRate;
 		}
 		private static AutoResetEvent gate = new AutoResetEvent(false);
 		private static Data data;
@@ -46,6 +55,11 @@ namespace DirectXHost
 			get => data.transparencyKey;
 			set => data.transparencyKey = value;
 		}
+		public static int frameRate
+		{
+			get => data.frameRate;
+			set => data.frameRate = value;
+		}
 
 		public static async Task Load() => await Task.Run(() =>
 		{
@@ -57,7 +71,8 @@ namespace DirectXHost
 					savePositions = false,
 					overlayRect = new Rect { Size = new Size(Constants.OverlayStartWidth, Constants.OverlayStartHeight), Point = Point.Empty },
 					containerRect = new Rect { Size = new Size(Constants.StartWidth, Constants.StartHeight), Point = Point.Empty },
-					transparencyKey = Constants.DefaultTransparencyKey
+					transparencyKey = Constants.DefaultTransparencyKey,
+					frameRate = 10
 				};
 				return;
 			}
@@ -65,6 +80,9 @@ namespace DirectXHost
 			{
 				var value = new BinaryFormatter().Deserialize(stream);
 				data = (Data)value;
+				// Migrate data for new property
+				if (data.frameRate == 0)
+					data.frameRate = 10;
 			}
 		});
 
