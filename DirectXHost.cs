@@ -283,7 +283,7 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 					Settings.Save();
 					(menuItem as MenuItem).Text = $"{Settings.frameRate} FPS";
 				}),
-				new MenuItem("            Version 2.0")
+				new MenuItem($"          Version {Application.ProductVersion.Substring(0, Application.ProductVersion.Length - 4)}")
 			});
 		private void ShouldShowOverlayFrame(bool show)
 		{
