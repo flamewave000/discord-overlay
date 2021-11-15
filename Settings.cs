@@ -9,14 +9,6 @@ namespace DirectXHost
 {
 	static class Settings
 	{
-		public enum FrameRate
-		{
-			_5 = 5,
-			_10 = 10,
-			_20 = 20,
-			_30 = 30
-		}
-
 		[Serializable]
 		private struct Data
 		{
