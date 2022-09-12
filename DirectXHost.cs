@@ -1,11 +1,13 @@
-﻿using System;
-using System.Windows.Forms;
-using SharpDX.Windows;
+﻿using SharpDX.Windows;
+using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using System.Security.Permissions;
 using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Linq;
+using DirectXHost.Extensions;
+using System.Threading;
 
 namespace DirectXHost
 {
@@ -13,11 +15,19 @@ namespace DirectXHost
 	{
 		[DllImport("user32")]
 		private static extern int PrintWindow(IntPtr hwnd, IntPtr hdcBlt, UInt32 nFlags);
+		[DllImport("user32.dll", SetLastError = true)]
+		static extern int SetWindowLong(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+		[DllImport("user32.dll", SetLastError = true)]
+		static extern IntPtr FindWindow(string lpWindowClass, string lpWindowName);
+		[DllImport("user32.dll", SetLastError = true)]
+		static extern IntPtr FindWindowEx(IntPtr parentHandle, IntPtr childAfter, string className, string windowTitle);
+		private const int GWL_HWNDPARENT = -8;
 
 		private Form _overlayForm;
 		private PictureBox _overlayTarget;
 		private RenderForm _dxForm;
 		private GraphicsD3D11 _graphics;
+		private long time = DateTime.Now.Ticks;
 		private bool UserResized { get; set; }
 		private Size ClientSize { get; set; }
 
@@ -65,7 +75,7 @@ namespace DirectXHost
 					UserResized = true;
 				};
 				_overlayForm.Show();
-				RenderLoop.Run(_dxForm, RenderCallback);
+				RenderLoop.Run(_dxForm, RenderCallback, true);
 			}
 			catch (ArgumentException ex)
 			{
@@ -93,14 +103,23 @@ namespace DirectXHost
 		Graphics gfxScreenshot;
 		private void RenderCallback()
 		{
-			Update();
-			Draw();
-			gfxScreenshot = Graphics.FromImage(bmpScreenshot);
-			IntPtr dc = gfxScreenshot.GetHdc();
-			PrintWindow(_dxForm.Handle, dc, 0);
-			gfxScreenshot.ReleaseHdc();
-			gfxScreenshot.Dispose();
-			_overlayTarget.Invalidate();
+			if (_dxForm.WindowState == FormWindowState.Normal)
+			{
+				Update();
+				Draw();
+				gfxScreenshot = Graphics.FromImage(bmpScreenshot);
+				IntPtr dc = gfxScreenshot.GetHdc();
+				PrintWindow(_dxForm.Handle, dc, 0);
+				gfxScreenshot.ReleaseHdc();
+				gfxScreenshot.Dispose();
+				_overlayTarget.Invalidate();
+			}
+			// Calculate Frame Limiting
+			long end = DateTime.Now.Ticks;
+			long duration = end - time;
+			int timeout = (1000 / 10) - (int)new TimeSpan(duration).TotalMilliseconds;
+			if (timeout > 0)
+				Thread.Sleep(timeout);
 		}
 
 		class OverlayForm : Form
@@ -111,8 +130,8 @@ namespace DirectXHost
 			}
 		}
 
-		bool _drag = false;
-		Point _wstart, _mstart;
+		private bool _drag = false;
+		private Point _wstart, _mstart;
 
 		private void updateImageBounds()
 		{
@@ -127,10 +146,15 @@ namespace DirectXHost
 
 		private void InitializeRenderForm()
 		{
+			SizeF scaledSize;
 			_dxForm = new RenderForm(Constants.WindowTitle);
+			using (var gfx = _dxForm.CreateGraphics())
+			{
+				scaledSize = new SizeF(gfx.DpiX / 96, gfx.DpiY / 96);
+			}
 			_dxForm.HandleCreated += WindowHandleCreated;
 			_dxForm.HandleDestroyed += WindowHandleDestroyed;
-			_dxForm.MinimumSize = new Size(Constants.StartWidth, Constants.StartHeight);
+			_dxForm.MinimumSize = new Size((int)(Constants.StartWidth * scaledSize.Width), (int)(Constants.StartHeight * scaledSize.Height));
 			_dxForm.ClientSize = Settings.savePositions ? Settings.containerRect.Size : _dxForm.MinimumSize;
 			_dxForm.StartPosition = Settings.savePositions ? FormStartPosition.Manual : FormStartPosition.CenterScreen;
 			if (Settings.savePositions) _dxForm.Location = Settings.containerRect.Point;
@@ -142,6 +166,9 @@ namespace DirectXHost
 			_dxForm.Menu = GetMenu();
 			_dxForm.UserResized += (sender, args) => { Settings.containerRect.Size = _dxForm.ClientSize; Settings.Save(); };
 			_dxForm.LocationChanged += (sender, args) => { Settings.containerRect.Point = _dxForm.Location; Settings.Save(); };
+
+			IntPtr hprog = FindWindowEx(FindWindowEx(FindWindow("Discord Overlay", "Program Manager"), IntPtr.Zero, "SHELLDLL_DefView", ""), IntPtr.Zero, "SysListView32", "FolderView");
+			SetWindowLong(_dxForm.Handle, GWL_HWNDPARENT, hprog);
 
 			_overlayForm = new OverlayForm();
 			_overlayForm.Text = _overlayForm.Name = "Discord Overlay";
@@ -210,6 +237,8 @@ Save Window Positions: Saves the Overlay and Container sizes and screen position
 
 Transparency Colour: The colour used as a transparency key for hiding the background. Windows does not support an Alpha channel, so it has to use a defined colour to control clipping.
 
+FPS: The rate at which the Discord Overlay refreshes. This is defaulted to 10 times per second to minimize CPU load.
+
 If you have issues with the window positions/sizes, delete the 'props.bin' file that is generated in the program's folder. This will reset the program settings.
 ", "Help", MessageBoxButtons.OK, MessageBoxIcon.Question);
 		}
@@ -217,23 +246,23 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 		private MainMenu GetMenu() => new MainMenu(new MenuItem[]
 			{
 				new MenuItem("?", _dxForm_HelpRequested),
-				new MenuItem($"{(Settings.overlayClickable ? '☑' : '☐')} Overlay Clickable", (s,e) => {
+				new MenuItem($"{(Settings.overlayClickable ? '☑' : '☐')} Overlay Clickable", (menuItem,e) => {
 					Settings.overlayClickable = !Settings.overlayClickable;
-					_dxForm.Menu = GetMenu();
 					ShouldShowOverlayFrame(Settings.overlayClickable);
 					Settings.Save();
+					(menuItem as MenuItem).Text = $"{(Settings.overlayClickable ? '☑' : '☐')} Overlay Clickable";
 				}),
-				new MenuItem($"{(Settings.savePositions ? '☑' : '☐')} Save Window Positions", (s,e) => {
+				new MenuItem($"{(Settings.savePositions ? '☑' : '☐')} Save Window Positions", (menuItem,e) => {
 					Settings.savePositions = !Settings.savePositions;
-					_dxForm.Menu = GetMenu();
 					Settings.Save();
+					(menuItem as MenuItem).Text = $"{(Settings.savePositions ? '☑' : '☐')} Save Window Positions";
 				}),
+
 				new MenuItem($"{(Settings.topMost ? '☑' : '☐')} Always On Top", (s,e) => {
 					Settings.topMost = !Settings.topMost;
 					_dxForm.Menu = GetMenu();
 					Settings.Save();
-				}),
-				new MenuItem("Transparency Colour", (s,e) =>
+				new MenuItem("Transparency Colour", (menuItem,e) =>
 				{
 					var dialog = new ColorDialog();
 					dialog.Color = Settings.transparencyKey;
@@ -248,10 +277,23 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 						ShouldShowOverlayFrame(true);
 					}
 				}),
-				new MenuItem("            Version 2.0")
+				new MenuItem($"{Settings.frameRate} FPS", (menuItem, e) => {
+					switch(Settings.frameRate)
+					{
+						case 5: Settings.frameRate = 10; break;
+						case 10: Settings.frameRate = 20; break;
+						case 20: Settings.frameRate = 30; break;
+						case 30: Settings.frameRate = 5; break;
+					}
+					Settings.Save();
+					(menuItem as MenuItem).Text = $"{Settings.frameRate} FPS";
+				}),
+				new MenuItem($"          Version {Application.ProductVersion.Substring(0, Application.ProductVersion.Length - 4)}")
 			});
 		private void ShouldShowOverlayFrame(bool show)
 		{
+			if (_dxForm.WindowState == FormWindowState.Minimized)
+				_dxForm.WindowState = FormWindowState.Normal;
 			if (show && Settings.overlayClickable)
 			{
 				_overlayForm.AllowTransparency = false;
