@@ -18,6 +18,8 @@ namespace DirectXHost
 			public Rect containerRect;
 			public Color transparencyKey;
 			public int frameRate;
+			public double hostTransparency;
+			public bool hostTransparent;
 		}
 		private static AutoResetEvent gate = new AutoResetEvent(false);
 		private static Data data;
@@ -52,6 +54,18 @@ namespace DirectXHost
 			get => data.frameRate;
 			set => data.frameRate = value;
 		}
+		
+		public static double hostTransparency
+		{
+			get => data.hostTransparency;
+			set => data.hostTransparency = value;
+		}
+		
+		public static bool hostTransparent
+		{
+			get => data.hostTransparent;
+			set => data.hostTransparent = value;
+		}
 
 		public static async Task Load() => await Task.Run(() =>
 		{
@@ -64,7 +78,9 @@ namespace DirectXHost
 					overlayRect = new Rect { Size = new Size(Constants.OverlayStartWidth, Constants.OverlayStartHeight), Point = Point.Empty },
 					containerRect = new Rect { Size = new Size(Constants.StartWidth, Constants.StartHeight), Point = Point.Empty },
 					transparencyKey = Constants.DefaultTransparencyKey,
-					frameRate = 10
+					frameRate = 10,
+					hostTransparency = 1,
+					hostTransparent = false
 				};
 				return;
 			}
