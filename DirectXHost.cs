@@ -186,6 +186,7 @@ namespace DirectXHost
             _dxForm.ClientSize = Settings.savePositions ? Settings.containerRect.Size : _dxForm.MinimumSize;
             _dxForm.StartPosition = Settings.savePositions ? FormStartPosition.Manual : FormStartPosition.CenterScreen;
             if (Settings.savePositions) _dxForm.Location = Settings.containerRect.Point;
+            if (Settings.hostTransparency == 0) Settings.hostTransparency = 1;
             _dxForm.FormBorderStyle = FormBorderStyle.SizableToolWindow;
             _dxForm.GotFocus += (s, e) => ShouldShowOverlayFrame(true);
             _dxForm.LostFocus += (s, e) => ShouldShowOverlayFrame(false);
