@@ -136,7 +136,6 @@ namespace DirectXHost
 			long drawingTime = stopWatch.ElapsedTicks;
 			
 			int frameRate = Settings.frameRate;
-
 			if (frameRate > 0)
 			{
 				int framerateTicks = 10000000 / frameRate;
