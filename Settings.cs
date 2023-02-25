@@ -18,7 +18,7 @@ namespace DirectXHost
 			public Rect containerRect;
 			public Color transparencyKey;
 			public int frameRate;
-			public double hostTransparency;
+			public double hostOpacity;
 		}
 		private static AutoResetEvent gate = new AutoResetEvent(false);
 		private static Data data;
@@ -56,8 +56,8 @@ namespace DirectXHost
 		
 		public static double hostOpacity
 		{
-			get => data.hostTransparency;
-			set => data.hostTransparency = value;
+			get => data.hostOpacity;
+			set => data.hostOpacity = value;
 		}
 
 		public static bool isHostTransparent => hostOpacity < 1;
@@ -74,7 +74,7 @@ namespace DirectXHost
 					containerRect = new Rect { Size = new Size(Constants.StartWidth, Constants.StartHeight), Point = Point.Empty },
 					transparencyKey = Constants.DefaultTransparencyKey,
 					frameRate = 10,
-					hostTransparency = 1
+					hostOpacity = 1
 				};
 				return;
 			}
