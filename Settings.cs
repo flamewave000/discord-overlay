@@ -55,17 +55,13 @@ namespace DirectXHost
 			set => data.frameRate = value;
 		}
 		
-		public static double hostTransparency
+		public static double hostOpacity
 		{
 			get => data.hostTransparency;
 			set => data.hostTransparency = value;
 		}
-		
-		public static bool hostTransparent
-		{
-			get => data.hostTransparent;
-			set => data.hostTransparent = value;
-		}
+
+		public static bool isHostTransparent => hostOpacity < 1;
 
 		public static async Task Load() => await Task.Run(() =>
 		{
