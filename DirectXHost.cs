@@ -8,11 +8,27 @@ using System.Windows.Forms;
 using System.Linq;
 using DirectXHost.Extensions;
 using System.Threading;
+using System.Reflection;
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace DirectXHost
 {
 	public class DirectXHost : IDisposable
 	{
+		public const int GWL_EXSTYLE = -20;
+		public const uint WS_EX_LAYERED = 0x00080000;
+		public const uint WS_EX_TRANSPARENT = 0x00000020;
+
+		[DllImport("user32.dll", SetLastError = true)]
+		static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+		[DllImport("user32.dll")]
+		static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+		[DllImport("user32.dll")]
+		static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
+
 		[DllImport("user32")]
 		private static extern int PrintWindow(IntPtr hwnd, IntPtr hdcBlt, UInt32 nFlags);
 		[DllImport("user32.dll", SetLastError = true)]
@@ -23,11 +39,11 @@ namespace DirectXHost
 		static extern IntPtr FindWindowEx(IntPtr parentHandle, IntPtr childAfter, string className, string windowTitle);
 		private const int GWL_HWNDPARENT = -8;
 
-		private Form _overlayForm;
+		private OverlayForm _overlayForm;
 		private PictureBox _overlayTarget;
 		private RenderForm _dxForm;
 		private GraphicsD3D11 _graphics;
-		private long time = DateTime.Now.Ticks;
+		private Stopwatch stopWatch = new Stopwatch();
 		private bool UserResized { get; set; }
 		private Size ClientSize { get; set; }
 
@@ -103,7 +119,8 @@ namespace DirectXHost
 		Graphics gfxScreenshot;
 		private void RenderCallback()
 		{
-			if (_dxForm.WindowState == FormWindowState.Normal)
+			stopWatch.Restart();
+			if (_dxForm.WindowState != FormWindowState.Minimized)
 			{
 				Update();
 				Draw();
@@ -115,21 +132,38 @@ namespace DirectXHost
 				_overlayTarget.Invalidate();
 			}
 			// Calculate Frame Limiting
-			long end = DateTime.Now.Ticks;
-			long duration = end - time;
-			int timeout = (1000 / 10) - (int)new TimeSpan(duration).TotalMilliseconds;
-			if (timeout > 0)
-				Thread.Sleep(timeout);
+			stopWatch.Stop();
+			long drawingTime = stopWatch.ElapsedTicks;
+			
+			int frameRate = Settings.frameRate;
+			if (frameRate > 0)
+			{
+				int framerateTicks = 10000000 / frameRate;
+				long duration = framerateTicks - drawingTime;
+				if (duration > 0)
+					Thread.Sleep(new TimeSpan(duration));
+			}
 		}
 
 		class OverlayForm : Form
 		{
+			private int PreviousStyle;
+
 			public OverlayForm() : base()
 			{
 				DoubleBuffered = true;
 			}
-		}
+			public void SetFormTransparent()
+			{
+				PreviousStyle = GetWindowLong(Handle, GWL_EXSTYLE);
+				SetWindowLong(Handle, GWL_EXSTYLE, Convert.ToInt32(PreviousStyle | WS_EX_LAYERED | WS_EX_TRANSPARENT));
+			}
 
+			public void SetFormNormal()
+			{
+				SetWindowLong(Handle, GWL_EXSTYLE, Convert.ToInt32(PreviousStyle | WS_EX_LAYERED));
+			}
+		}
 		private bool _drag = false;
 		private Point _wstart, _mstart;
 
@@ -158,13 +192,14 @@ namespace DirectXHost
 			_dxForm.ClientSize = Settings.savePositions ? Settings.containerRect.Size : _dxForm.MinimumSize;
 			_dxForm.StartPosition = Settings.savePositions ? FormStartPosition.Manual : FormStartPosition.CenterScreen;
 			if (Settings.savePositions) _dxForm.Location = Settings.containerRect.Point;
+			if (Settings.hostOpacity == 0) Settings.hostOpacity = 1;
 			_dxForm.FormBorderStyle = FormBorderStyle.SizableToolWindow;
 			_dxForm.GotFocus += (s, e) => ShouldShowOverlayFrame(true);
 			_dxForm.LostFocus += (s, e) => ShouldShowOverlayFrame(false);
 			_dxForm.TopMost = false;
 			_dxForm.HelpRequested += _dxForm_HelpRequested;
 			_dxForm.Menu = GetMenu();
-			_dxForm.UserResized += (sender, args) => { Settings.containerRect.Size = _dxForm.ClientSize; Settings.Save(); };
+			_dxForm.UserResized += (sender, args) => { Settings.containerRect.Size = _dxForm.ClientSize; _overlayForm.Width = _dxForm.Width; _overlayForm.Height = _dxForm.Height - SystemInformation.MenuHeight; Settings.Save(); };
 			_dxForm.LocationChanged += (sender, args) => { Settings.containerRect.Point = _dxForm.Location; Settings.Save(); };
 
 			IntPtr hprog = FindWindowEx(FindWindowEx(FindWindow("Discord Overlay", "Program Manager"), IntPtr.Zero, "SHELLDLL_DefView", ""), IntPtr.Zero, "SysListView32", "FolderView");
@@ -180,8 +215,9 @@ namespace DirectXHost
 			_overlayForm.TransparencyKey = Settings.transparencyKey;
 			_overlayForm.TopMost = true;
 			_overlayForm.ShowIcon = false;
-			_overlayForm.MinimizeBox = true;
-			_overlayForm.MaximizeBox = true;
+			_overlayForm.MinimizeBox = false;
+			_overlayForm.MaximizeBox = false;
+			_overlayForm.ControlBox = false;
 			_overlayForm.BackgroundImageLayout = ImageLayout.None;
 			_overlayForm.FormBorderStyle = FormBorderStyle.Sizable;
 			_overlayForm.FormClosing += (s, e) => _dxForm.Close();
@@ -189,11 +225,13 @@ namespace DirectXHost
 			_overlayForm.LostFocus += (s, e) => ShouldShowOverlayFrame(false);
 			_overlayTarget = new PictureBox();
 			_overlayTarget.SizeMode = PictureBoxSizeMode.Normal;
-			_overlayTarget.BackColor = Color.Red;
+			_overlayTarget.BackColor = Settings.transparencyKey;
 			_overlayTarget.Anchor = AnchorStyles.Top | AnchorStyles.Left;
 			_overlayForm.Controls.Add(_overlayTarget);
 			_overlayForm.ResizeEnd += (sender, args) => { Settings.overlayRect.Size = _overlayForm.ClientSize; Settings.Save(); };
 			_overlayForm.LocationChanged += (sender, args) => { Settings.overlayRect.Point = _overlayForm.Location; Settings.Save(); };
+			_overlayForm.Width = _dxForm.Width;
+			_overlayForm.Height = _dxForm.Height - SystemInformation.MenuHeight;
 
 			// Set the bitmap object to the size of the screen
 			bmpScreenshot = new Bitmap(_dxForm.Width, _dxForm.Height, PixelFormat.Format32bppArgb);
@@ -272,16 +310,39 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 						ShouldShowOverlayFrame(true);
 					}
 				}),
-				new MenuItem($"{Settings.frameRate} FPS", (menuItem, e) => {
+				new MenuItem($"{(Settings.frameRate > 0 ? Settings.frameRate.ToString() : "Unlimited")} FPS", (menuItem, e) => {
 					switch(Settings.frameRate)
 					{
 						case 5: Settings.frameRate = 10; break;
 						case 10: Settings.frameRate = 20; break;
 						case 20: Settings.frameRate = 30; break;
-						case 30: Settings.frameRate = 5; break;
+						case 30: Settings.frameRate = 60; break;
+						case 60: Settings.frameRate = 120; break;
+						case 120: Settings.frameRate = 0; break;
+						case 0: Settings.frameRate = 5; break;
 					}
 					Settings.Save();
-					(menuItem as MenuItem).Text = $"{Settings.frameRate} FPS";
+					(menuItem as MenuItem).Text = $"{(Settings.frameRate > 0 ? Settings.frameRate.ToString() : "Unlimited")} FPS";
+				}),
+				new MenuItem($"{Settings.hostOpacity * 100}% Opacity", (menuItem, e) => {
+					if (_dxForm.Opacity != Settings.hostOpacity)
+					{
+						_dxForm.AllowTransparency = Settings.isHostTransparent;
+						_dxForm.Opacity = Settings.hostOpacity;
+						return;
+					}
+					switch(Settings.hostOpacity)
+					{
+						case 1: Settings.hostOpacity = 0.75; break;
+						case 0.75: Settings.hostOpacity = 0.5; break;
+						case 0.5: Settings.hostOpacity = 0.25; break;
+						case 0.25: Settings.hostOpacity = 1; break;
+						default: Settings.hostOpacity = 1.0; break;
+					}
+					Settings.Save();
+					_dxForm.AllowTransparency = Settings.isHostTransparent;
+					_dxForm.Opacity = Settings.hostOpacity;
+					(menuItem as MenuItem).Text = $"{Settings.hostOpacity * 100}% Opacity";
 				}),
 				new MenuItem($"          Version {Application.ProductVersion.Substring(0, Application.ProductVersion.Length - 4)}")
 			});
@@ -292,7 +353,8 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 			if (show && Settings.overlayClickable)
 			{
 				_overlayForm.AllowTransparency = false;
-				_overlayForm.FormBorderStyle = FormBorderStyle.Sizable;
+				_overlayForm.FormBorderStyle = FormBorderStyle.FixedToolWindow;
+				_overlayForm.SetFormNormal();
 			}
 			else
 			{
@@ -302,6 +364,7 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 					_overlayForm.FormBorderStyle = FormBorderStyle.None;
 					_overlayForm.BackColor = Settings.transparencyKey;
 					_overlayForm.TransparencyKey = Settings.transparencyKey;
+					_overlayForm.SetFormTransparent();
 				}
 				catch (Exception) { }
 			}
