@@ -134,7 +134,7 @@ namespace DirectXHost
 			// Calculate Frame Limiting
 			stopWatch.Stop();
 			long drawingTime = stopWatch.ElapsedTicks;
-			
+
 			int frameRate = Settings.frameRate;
 			if (frameRate > 0)
 			{
@@ -300,15 +300,15 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 					Settings.topMost = !Settings.topMost;
 					_dxForm.Menu = GetMenu();
 					Settings.Save();
-				new MenuItem("Transparency Colour", (menuItem,e) =>
-				{
+				}),
+				new MenuItem("Transparency Colour", (menuItem, e) => {
 					var dialog = new ColorDialog();
 					dialog.Color = Settings.transparencyKey;
 					dialog.SolidColorOnly = true;
 					dialog.AnyColor = true;
 					dialog.FullOpen = true;
 					dialog.CustomColors = new int[] { ColorToBgr(Constants.DefaultTransparencyKey), ColorToBgr(Settings.transparencyKey) };
-					if(dialog.ShowDialog(_dxForm) == DialogResult.OK)
+					if (dialog.ShowDialog(_dxForm) == DialogResult.OK)
 					{
 						Settings.transparencyKey = dialog.Color;
 						Settings.Save();

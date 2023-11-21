@@ -4,11 +4,16 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Drawing;
 using System.Threading;
+using System.Runtime.Serialization.Json;
+using System.Runtime.Serialization;
 
 namespace DirectXHost
 {
 	static class Settings
 	{
+		private static readonly string OLD_SAVE_FILE = "props.bin";
+		private static readonly string SAVE_FILE = "settings.json";
+		[Obsolete]
 		[Serializable]
 		private struct Data
 		{
@@ -17,12 +22,30 @@ namespace DirectXHost
 			public bool topMost;
 			public Rect overlayRect;
 			public Rect containerRect;
-			public Color transparencyKey;
 			public int frameRate;
 			public double hostOpacity;
+			public Color transparencyKey;
+		}
+		[DataContract]
+		private struct JsonData
+		{
+			[DataMember] public bool overlayClickable;
+			[DataMember] public bool savePositions;
+			[DataMember] public bool topMost;
+			[DataMember] public Rect overlayRect;
+			[DataMember] public Rect containerRect;
+			[DataMember] public int frameRate;
+			[DataMember] public double hostOpacity;
+			[IgnoreDataMember]
+			public Color transparencyKey
+			{
+				get => ColorTranslator.FromHtml(transparencyKeyString);
+				set => transparencyKeyString = ColorTranslator.ToHtml(value);//Convert.ToString(value.ToArgb(), 16).Substring(2);
+			}
+			[DataMember(Name = "transparencyKey")] private string transparencyKeyString;
 		}
 		private static AutoResetEvent gate = new AutoResetEvent(false);
-		private static Data data;
+		private static JsonData data;
 
 		public static bool overlayClickable
 		{
@@ -59,7 +82,6 @@ namespace DirectXHost
 			get => data.frameRate;
 			set => data.frameRate = value;
 		}
-		
 		public static double hostOpacity
 		{
 			get => data.hostOpacity;
@@ -70,9 +92,34 @@ namespace DirectXHost
 
 		public static async Task Load() => await Task.Run(() =>
 		{
-			if (!File.Exists("props.bin"))
+			if (File.Exists(OLD_SAVE_FILE))
 			{
-				data = new Data
+				using (FileStream stream = new FileStream(OLD_SAVE_FILE, FileMode.OpenOrCreate))
+				{
+					var oldData = (Data)new BinaryFormatter().Deserialize(stream);
+					// Migrate data for new property
+					if (oldData.frameRate == 0)
+						oldData.frameRate = 10;
+					oldData.topMost = true;
+					data = new JsonData
+					{
+						overlayClickable = oldData.overlayClickable,
+						savePositions = oldData.savePositions,
+						topMost = oldData.topMost,
+						overlayRect = oldData.overlayRect,
+						containerRect = oldData.containerRect,
+						transparencyKey = oldData.transparencyKey,
+						frameRate = oldData.frameRate,
+						hostOpacity = oldData.hostOpacity
+					};
+				}
+				File.Delete(OLD_SAVE_FILE);
+				Save();
+				return;
+			}
+			if (!File.Exists(SAVE_FILE))
+			{
+				data = new JsonData
 				{
 					overlayClickable = true,
 					savePositions = false,
@@ -85,13 +132,9 @@ namespace DirectXHost
 				};
 				return;
 			}
-			using (FileStream stream = new FileStream("props.bin", FileMode.OpenOrCreate))
+			using (FileStream stream = new FileStream(SAVE_FILE, FileMode.OpenOrCreate))
 			{
-				var value = new BinaryFormatter().Deserialize(stream);
-				data = (Data)value;
-				// Migrate data for new property
-				if (data.frameRate == 0)
-					data.frameRate = 10;
+				data = (JsonData)new DataContractJsonSerializer(typeof(JsonData)).ReadObject(stream);
 			}
 		});
 
@@ -107,9 +150,9 @@ namespace DirectXHost
 				gate.WaitOne();
 				while (Running)
 				{
-					using (FileStream stream = new FileStream("props.bin", FileMode.OpenOrCreate))
+					using (FileStream stream = new FileStream(SAVE_FILE, FileMode.OpenOrCreate))
 					{
-						new BinaryFormatter().Serialize(stream, data);
+						new DataContractJsonSerializer(typeof(JsonData)).WriteObject(stream, data);
 					}
 					gate.WaitOne();
 				}
