@@ -14,6 +14,7 @@ namespace DirectXHost
 		{
 			public bool overlayClickable;
 			public bool savePositions;
+			public bool topMost;
 			public Rect overlayRect;
 			public Rect containerRect;
 			public Color transparencyKey;
@@ -32,6 +33,11 @@ namespace DirectXHost
 		{
 			get => data.savePositions;
 			set => data.savePositions = value;
+		}
+		public static bool topMost
+		{
+			get => data.topMost;
+			set => data.topMost = value;
 		}
 		public static Rect overlayRect
 		{
@@ -70,6 +76,7 @@ namespace DirectXHost
 				{
 					overlayClickable = true,
 					savePositions = false,
+					topMost = true,
 					overlayRect = new Rect { Size = new Size(Constants.OverlayStartWidth, Constants.OverlayStartHeight), Point = Point.Empty },
 					containerRect = new Rect { Size = new Size(Constants.StartWidth, Constants.StartHeight), Point = Point.Empty },
 					transparencyKey = Constants.DefaultTransparencyKey,
