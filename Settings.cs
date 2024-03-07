@@ -147,14 +147,14 @@ namespace DirectXHost
 			Running = true;
 			Task.Run(() =>
 			{
-				gate.WaitOne();
-				while (Running)
+				while (gate.WaitOne() && Running)
 				{
-					using (FileStream stream = new FileStream(SAVE_FILE, FileMode.OpenOrCreate))
+					using (FileStream stream = new FileStream(SAVE_FILE, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read))
 					{
+						// Truncate the file before writing out the new contents
+						stream.SetLength(0);
 						new DataContractJsonSerializer(typeof(JsonData)).WriteObject(stream, data);
 					}
-					gate.WaitOne();
 				}
 			});
 		}
