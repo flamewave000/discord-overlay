@@ -36,6 +36,7 @@ namespace DirectXHost
 			[DataMember] public Rect containerRect;
 			[DataMember] public int frameRate;
 			[DataMember] public double hostOpacity;
+			[DataMember] public double overlayOpacity;
 			[IgnoreDataMember]
 			public Color transparencyKey
 			{
@@ -87,6 +88,16 @@ namespace DirectXHost
 			get => data.hostOpacity;
 			set => data.hostOpacity = value;
 		}
+		public static double overlayOpacity
+		{
+			get
+			{
+				if (data.overlayOpacity < 0.25 || data.overlayOpacity > 1)
+					data.overlayOpacity = 1;
+				return data.overlayOpacity;
+			}
+			set => data.overlayOpacity = value;
+		}
 
 		public static bool isHostTransparent => hostOpacity < 1;
 
@@ -128,7 +139,8 @@ namespace DirectXHost
 					containerRect = new Rect { Size = new Size(Constants.StartWidth, Constants.StartHeight), Point = Point.Empty },
 					transparencyKey = Constants.DefaultTransparencyKey,
 					frameRate = 10,
-					hostOpacity = 1
+					hostOpacity = 1,
+					overlayOpacity = 1
 				};
 				return;
 			}

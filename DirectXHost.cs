@@ -194,13 +194,15 @@ namespace DirectXHost
 			if (Settings.savePositions) _dxForm.Location = Settings.containerRect.Point;
 			if (Settings.hostOpacity == 0) Settings.hostOpacity = 1;
 			_dxForm.FormBorderStyle = FormBorderStyle.SizableToolWindow;
-			_dxForm.GotFocus += (s, e) => ShouldShowOverlayFrame(true);
-			_dxForm.LostFocus += (s, e) => ShouldShowOverlayFrame(false);
 			_dxForm.TopMost = false;
 			_dxForm.HelpRequested += _dxForm_HelpRequested;
 			_dxForm.Menu = GetMenu();
-			_dxForm.UserResized += (sender, args) => { Settings.containerRect.Size = _dxForm.ClientSize; _overlayForm.Width = _dxForm.Width; _overlayForm.Height = _dxForm.Height - SystemInformation.MenuHeight; Settings.Save(); };
+			_dxForm.UserResized += (sender, args) => { Settings.containerRect.Size = _dxForm.ClientSize; Settings.Save(); };
 			_dxForm.LocationChanged += (sender, args) => { Settings.containerRect.Point = _dxForm.Location; Settings.Save(); };
+			_dxForm.AllowTransparency = Settings.isHostTransparent;
+			_dxForm.Opacity = Settings.hostOpacity;
+			_dxForm.GotFocus += (s, e) => ShouldShowOverlayFrame(true);
+			_dxForm.LostFocus += (s, e) => ShouldShowOverlayFrame(false);
 
 			IntPtr hprog = FindWindowEx(FindWindowEx(FindWindow("Discord Overlay", "Program Manager"), IntPtr.Zero, "SHELLDLL_DefView", ""), IntPtr.Zero, "SysListView32", "FolderView");
 			SetWindowLong(_dxForm.Handle, GWL_HWNDPARENT, hprog);
@@ -211,8 +213,10 @@ namespace DirectXHost
 			_overlayForm.ClientSize = Settings.savePositions ? Settings.overlayRect.Size : new Size(Constants.OverlayStartWidth, Constants.OverlayStartHeight);
 			_overlayForm.StartPosition = Settings.savePositions ? FormStartPosition.Manual : FormStartPosition.CenterScreen;
 			if (Settings.savePositions) _overlayForm.Location = Settings.overlayRect.Point;
+			_overlayForm.AllowTransparency = true;
 			_overlayForm.BackColor = Settings.transparencyKey;
 			_overlayForm.TransparencyKey = Settings.transparencyKey;
+			_overlayForm.Opacity = Settings.overlayOpacity;
 			_overlayForm.TopMost = Settings.topMost;
 			_overlayForm.ShowIcon = false;
 			_overlayForm.MinimizeBox = false;
@@ -230,8 +234,6 @@ namespace DirectXHost
 			_overlayForm.Controls.Add(_overlayTarget);
 			_overlayForm.ResizeEnd += (sender, args) => { Settings.overlayRect.Size = _overlayForm.ClientSize; Settings.Save(); };
 			_overlayForm.LocationChanged += (sender, args) => { Settings.overlayRect.Point = _overlayForm.Location; Settings.Save(); };
-			_overlayForm.Width = _dxForm.Width;
-			_overlayForm.Height = _dxForm.Height - SystemInformation.MenuHeight;
 
 			// Set the bitmap object to the size of the screen
 			bmpScreenshot = new Bitmap(_dxForm.Width, _dxForm.Height, PixelFormat.Format32bppArgb);
@@ -281,76 +283,115 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 ", "Help", MessageBoxButtons.OK, MessageBoxIcon.Question);
 		}
 		private int ColorToBgr(Color color) => (color.B << 16) | (color.G << 8) | color.R;
-		private MainMenu GetMenu() => new MainMenu(new MenuItem[]
+		private MainMenu GetMenu()
+		{
+			var overlayClickable = new MenuItem("Overlay Clickable", (i, e) =>
 			{
-				new MenuItem("?", _dxForm_HelpRequested),
-				new MenuItem($"{(Settings.overlayClickable ? '☑' : '☐')} Overlay Clickable", (menuItem,e) => {
-					Settings.overlayClickable = !Settings.overlayClickable;
-					ShouldShowOverlayFrame(Settings.overlayClickable);
-					Settings.Save();
-					(menuItem as MenuItem).Text = $"{(Settings.overlayClickable ? '☑' : '☐')} Overlay Clickable";
-				}),
-				new MenuItem($"{(Settings.savePositions ? '☑' : '☐')} Save Window Positions", (menuItem,e) => {
-					Settings.savePositions = !Settings.savePositions;
-					Settings.Save();
-					(menuItem as MenuItem).Text = $"{(Settings.savePositions ? '☑' : '☐')} Save Window Positions";
-				}),
+				Settings.overlayClickable = !Settings.overlayClickable;
+				(i as MenuItem).Checked = Settings.overlayClickable;
+				ShouldShowOverlayFrame(Settings.overlayClickable);
+				Settings.Save();
+			});
+			overlayClickable.Checked = Settings.overlayClickable;
+			var savePositions = new MenuItem("Save Positions", (i, e) =>
+			{
+				Settings.savePositions = !Settings.savePositions;
+				(i as MenuItem).Checked = Settings.savePositions;
+				Settings.Save();
+			});
+			savePositions.Checked = Settings.savePositions;
+			var topMost = new MenuItem("Top Most", (i, e) =>
+			{
+				Settings.topMost = !Settings.topMost;
+				(i as MenuItem).Checked = Settings.topMost;
+				Settings.Save();
+			});
+			topMost.Checked = Settings.topMost;
 
-				new MenuItem($"{(Settings.topMost ? '☑' : '☐')} Always On Top", (s,e) => {
-					Settings.topMost = !Settings.topMost;
-					_dxForm.Menu = GetMenu();
+			var transparency = new MenuItem("Transparency Colour", (i, e) =>
+			{
+				var dialog = new ColorDialog();
+				dialog.Color = Settings.transparencyKey;
+				dialog.SolidColorOnly = true;
+				dialog.AnyColor = true;
+				dialog.FullOpen = true;
+				dialog.CustomColors = new int[] { ColorToBgr(Constants.DefaultTransparencyKey), ColorToBgr(Settings.transparencyKey) };
+				if (dialog.ShowDialog(_dxForm) == DialogResult.OK)
+				{
+					Settings.transparencyKey = dialog.Color;
 					Settings.Save();
-				}),
-				new MenuItem("Transparency Colour", (menuItem, e) => {
-					var dialog = new ColorDialog();
-					dialog.Color = Settings.transparencyKey;
-					dialog.SolidColorOnly = true;
-					dialog.AnyColor = true;
-					dialog.FullOpen = true;
-					dialog.CustomColors = new int[] { ColorToBgr(Constants.DefaultTransparencyKey), ColorToBgr(Settings.transparencyKey) };
-					if (dialog.ShowDialog(_dxForm) == DialogResult.OK)
-					{
-						Settings.transparencyKey = dialog.Color;
-						Settings.Save();
-						ShouldShowOverlayFrame(true);
-					}
-				}),
-				new MenuItem($"{(Settings.frameRate > 0 ? Settings.frameRate.ToString() : "Unlimited")} FPS", (menuItem, e) => {
-					switch(Settings.frameRate)
-					{
-						case 5: Settings.frameRate = 10; break;
-						case 10: Settings.frameRate = 20; break;
-						case 20: Settings.frameRate = 30; break;
-						case 30: Settings.frameRate = 60; break;
-						case 60: Settings.frameRate = 120; break;
-						case 120: Settings.frameRate = 0; break;
-						case 0: Settings.frameRate = 5; break;
-					}
-					Settings.Save();
-					(menuItem as MenuItem).Text = $"{(Settings.frameRate > 0 ? Settings.frameRate.ToString() : "Unlimited")} FPS";
-				}),
-				new MenuItem($"{Settings.hostOpacity * 100}% Opacity", (menuItem, e) => {
-					if (_dxForm.Opacity != Settings.hostOpacity)
-					{
-						_dxForm.AllowTransparency = Settings.isHostTransparent;
-						_dxForm.Opacity = Settings.hostOpacity;
-						return;
-					}
-					switch(Settings.hostOpacity)
-					{
-						case 1: Settings.hostOpacity = 0.75; break;
-						case 0.75: Settings.hostOpacity = 0.5; break;
-						case 0.5: Settings.hostOpacity = 0.25; break;
-						case 0.25: Settings.hostOpacity = 1; break;
-						default: Settings.hostOpacity = 1.0; break;
-					}
-					Settings.Save();
+					ShouldShowOverlayFrame(true);
+				}
+			});
+			var framerate = new MenuItem($"{(Settings.frameRate > 0 ? Settings.frameRate.ToString() : "Unlimited")} FPS", (i, e) =>
+			{
+				switch (Settings.frameRate)
+				{
+					case 0: Settings.frameRate = 5; break;
+					case 5: Settings.frameRate = 10; break;
+					case 10: Settings.frameRate = 20; break;
+					case 20: Settings.frameRate = 30; break;
+					case 30: Settings.frameRate = 60; break;
+					case 60: Settings.frameRate = 120; break;
+					case 120: Settings.frameRate = 0; break;
+				}
+				Settings.Save();
+				(i as MenuItem).Text = $"{(Settings.frameRate > 0 ? Settings.frameRate.ToString() : "Unlimited")} FPS";
+			});
+			var hostOpacity = new MenuItem($"{Settings.hostOpacity * 100}% Host Opacity", (i, e) =>
+			{
+				if (_dxForm.Opacity != Settings.hostOpacity)
+				{
 					_dxForm.AllowTransparency = Settings.isHostTransparent;
 					_dxForm.Opacity = Settings.hostOpacity;
-					(menuItem as MenuItem).Text = $"{Settings.hostOpacity * 100}% Opacity";
-				}),
-				new MenuItem($"          Version {Application.ProductVersion.Substring(0, Application.ProductVersion.Length - 4)}")
+					return;
+				}
+				switch (Settings.hostOpacity)
+				{
+					case 1: Settings.hostOpacity = 0.75; break;
+					case 0.75: Settings.hostOpacity = 0.5; break;
+					case 0.5: Settings.hostOpacity = 0.25; break;
+					case 0.25: Settings.hostOpacity = 1; break;
+					default: Settings.hostOpacity = 1.0; break;
+				}
+				Settings.Save();
+				_dxForm.AllowTransparency = Settings.isHostTransparent;
+				_dxForm.Opacity = Settings.hostOpacity;
+				(i as MenuItem).Text = $"{Settings.hostOpacity * 100}% Host Opacity";
 			});
+			var overlayOpacity = new MenuItem($"{Settings.overlayOpacity * 100}% Overlay Opacity", (i, e) =>
+			{
+				if (_overlayForm.Opacity != Settings.overlayOpacity)
+				{
+					_overlayForm.Opacity = Settings.overlayOpacity;
+					return;
+				}
+				switch (Settings.overlayOpacity)
+				{
+					case 1: Settings.overlayOpacity = 0.75; break;
+					case 0.75: Settings.overlayOpacity = 0.5; break;
+					case 0.5: Settings.overlayOpacity = 0.25; break;
+					case 0.25: Settings.overlayOpacity = 1; break;
+					default: Settings.overlayOpacity = 1.0; break;
+				}
+				Settings.Save();
+				_overlayForm.Opacity = Settings.overlayOpacity;
+				(i as MenuItem).Text = $"{Settings.overlayOpacity * 100}% Overlay Opacity";
+			});
+
+			var help = new MenuItem("?", _dxForm_HelpRequested);
+			var version = new MenuItem($"Version {Application.ProductVersion.Substring(0, Application.ProductVersion.Length - 4)}    |");
+			version.Enabled = false;
+
+			var menu = new MainMenu();
+			menu.MenuItems.AddRange(new MenuItem[] {
+				version,
+				new MenuItem("Behaviour", new MenuItem[] { overlayClickable, savePositions, topMost }),
+				new MenuItem("Graphics", new MenuItem[] { transparency, framerate, hostOpacity, overlayOpacity }),
+				help
+			});
+			return menu;
+		}
 		private void ShouldShowOverlayFrame(bool show)
 		{
 			if (_dxForm.WindowState == FormWindowState.Minimized)
@@ -358,7 +399,8 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 			if (show && Settings.overlayClickable)
 			{
 				_overlayForm.AllowTransparency = false;
-				_overlayForm.FormBorderStyle = FormBorderStyle.FixedToolWindow;
+				_overlayForm.Opacity = Settings.overlayOpacity;
+				_overlayForm.FormBorderStyle = FormBorderStyle.SizableToolWindow;
 				_overlayForm.SetFormNormal();
 			}
 			else
@@ -390,7 +432,7 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 		public void Update()
 		{
 			if (!UserResized) return;
-			_graphics.ResizeGraphics(ClientSize.Width, ClientSize.Height);
+			_graphics.ResizeGraphics(ClientSize.Width, ClientSize.Height - _dxForm.MainMenuStrip.Height);
 			UserResized = false;
 			bmpScreenshot?.Dispose();
 			if (ClientSize.Width <= 0 || ClientSize.Height <= 0) return;
