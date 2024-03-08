@@ -11,12 +11,14 @@ using System.Threading;
 using System.Reflection;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Timers;
 
 namespace DirectXHost
 {
 	public class DirectXHost : IDisposable
 	{
 		public const int GWL_EXSTYLE = -20;
+		public const int WS_EX_TOOLWINDOW = 0x00000080;
 		public const uint WS_EX_LAYERED = 0x00080000;
 		public const uint WS_EX_TRANSPARENT = 0x00000020;
 
@@ -43,6 +45,7 @@ namespace DirectXHost
 		private PictureBox _overlayTarget;
 		private RenderForm _dxForm;
 		private GraphicsD3D11 _graphics;
+		private Label _overlayHelpPrompt;
 		private Stopwatch stopWatch = new Stopwatch();
 		private bool UserResized { get; set; }
 		private Size ClientSize { get; set; }
@@ -193,7 +196,7 @@ namespace DirectXHost
 			_dxForm.StartPosition = Settings.savePositions ? FormStartPosition.Manual : FormStartPosition.CenterScreen;
 			if (Settings.savePositions) _dxForm.Location = Settings.containerRect.Point;
 			if (Settings.hostOpacity == 0) Settings.hostOpacity = 1;
-			_dxForm.FormBorderStyle = FormBorderStyle.SizableToolWindow;
+			_dxForm.FormBorderStyle = FormBorderStyle.Sizable;
 			_dxForm.TopMost = false;
 			_dxForm.HelpRequested += _dxForm_HelpRequested;
 			_dxForm.Menu = GetMenu();
@@ -208,7 +211,7 @@ namespace DirectXHost
 			SetWindowLong(_dxForm.Handle, GWL_HWNDPARENT, hprog);
 
 			_overlayForm = new OverlayForm();
-			_overlayForm.Text = _overlayForm.Name = "Discord Overlay";
+			_overlayForm.Text = ""; _overlayForm.Name = "Discord Overlay";
 			_overlayForm.MinimumSize = new Size(100, 50);
 			_overlayForm.ClientSize = Settings.savePositions ? Settings.overlayRect.Size : new Size(Constants.OverlayStartWidth, Constants.OverlayStartHeight);
 			_overlayForm.StartPosition = Settings.savePositions ? FormStartPosition.Manual : FormStartPosition.CenterScreen;
@@ -223,7 +226,7 @@ namespace DirectXHost
 			_overlayForm.MaximizeBox = false;
 			_overlayForm.ControlBox = false;
 			_overlayForm.BackgroundImageLayout = ImageLayout.None;
-			_overlayForm.FormBorderStyle = FormBorderStyle.Sizable;
+			_overlayForm.FormBorderStyle = FormBorderStyle.SizableToolWindow;
 			_overlayForm.FormClosing += (s, e) => _dxForm.Close();
 			_overlayForm.GotFocus += (s, e) => ShouldShowOverlayFrame(true);
 			_overlayForm.LostFocus += (s, e) => ShouldShowOverlayFrame(false);
@@ -231,9 +234,39 @@ namespace DirectXHost
 			_overlayTarget.SizeMode = PictureBoxSizeMode.Normal;
 			_overlayTarget.BackColor = Settings.transparencyKey;
 			_overlayTarget.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-			_overlayForm.Controls.Add(_overlayTarget);
 			_overlayForm.ResizeEnd += (sender, args) => { Settings.overlayRect.Size = _overlayForm.ClientSize; Settings.Save(); };
 			_overlayForm.LocationChanged += (sender, args) => { Settings.overlayRect.Point = _overlayForm.Location; Settings.Save(); };
+			_overlayForm.ShowInTaskbar = false;
+			_overlayForm.ControlBox = false;
+
+			_overlayHelpPrompt = new UnclickableLabel();
+			_overlayHelpPrompt.Text = "Click and drag anywhere in this window to move it";
+			_overlayHelpPrompt.TextAlign = ContentAlignment.MiddleCenter;
+			_overlayHelpPrompt.Anchor = AnchorStyles.None;
+			_overlayHelpPrompt.Dock = DockStyle.Fill;
+			_overlayHelpPrompt.Font = new Font(FontFamily.GenericSansSerif, 16, FontStyle.Bold);
+			_overlayHelpPrompt.ForeColor = Color.White;
+			_overlayForm.Controls.AddRange(new Control[] { _overlayHelpPrompt, _overlayTarget });
+			_overlayForm.Shown += async (s, e) =>
+			{
+				const int FRAMERATE = 25;
+				await Task.Delay(1000);
+				var alpha = 255.0;
+				Stopwatch sw = new Stopwatch();
+				while (alpha > 0)
+				{
+					sw.Restart();
+					alpha -= 255.0 / FRAMERATE;
+					_overlayHelpPrompt.ForeColor = Color.FromArgb(Math.Max(0, (int)alpha), _overlayHelpPrompt.ForeColor);
+					if (alpha <= 0)
+					{
+						_overlayHelpPrompt.Visible = false;
+						break;
+					}
+					await Task.Delay((1000 / FRAMERATE) - (int)sw.ElapsedMilliseconds);
+				}
+				sw.Stop();
+			};
 
 			// Set the bitmap object to the size of the screen
 			bmpScreenshot = new Bitmap(_dxForm.Width, _dxForm.Height, PixelFormat.Format32bppArgb);
@@ -253,14 +286,14 @@ namespace DirectXHost
 				_dxForm.Location = _dxForm.PointToScreen(new Point(_wstart.X + delta.X, _wstart.Y + delta.Y));
 			};
 
-			_overlayForm.MouseDown += (s, e) =>
+			_overlayTarget.MouseDown += (s, e) =>
 			{
 				_drag = e.Button == MouseButtons.Left;
 				_mstart = _overlayForm.PointToScreen(e.Location);
 				_wstart = _overlayForm.Location;
 			};
-			_overlayForm.MouseUp += (s, e) => _drag = e.Button == MouseButtons.Left ? false : _drag;
-			_overlayForm.MouseMove += (s, e) =>
+			_overlayTarget.MouseUp += (s, e) => _drag = e.Button == MouseButtons.Left ? false : _drag;
+			_overlayTarget.MouseMove += (s, e) =>
 			{
 				if (!_drag) return;
 				var newPoint = e.Location;
@@ -401,6 +434,7 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 				_overlayForm.AllowTransparency = false;
 				_overlayForm.Opacity = Settings.overlayOpacity;
 				_overlayForm.FormBorderStyle = FormBorderStyle.SizableToolWindow;
+				_overlayForm.ControlBox = false;
 				_overlayForm.SetFormNormal();
 			}
 			else
@@ -409,6 +443,8 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 				{
 					_overlayForm.AllowTransparency = true;
 					_overlayForm.FormBorderStyle = FormBorderStyle.None;
+					SetWindowLong(_overlayForm.Handle, GWL_EXSTYLE, GetWindowLong(_overlayForm.Handle, GWL_EXSTYLE) | WS_EX_TOOLWINDOW);
+					_overlayForm.ShowInTaskbar = false;
 					_overlayForm.BackColor = Settings.transparencyKey;
 					_overlayForm.TransparencyKey = Settings.transparencyKey;
 					_overlayForm.SetFormTransparent();
