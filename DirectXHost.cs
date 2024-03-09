@@ -468,7 +468,7 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 		public void Update()
 		{
 			if (!UserResized) return;
-			_graphics.ResizeGraphics(ClientSize.Width, ClientSize.Height - _dxForm.MainMenuStrip.Height);
+			_graphics.ResizeGraphics(ClientSize.Width, ClientSize.Height);
 			UserResized = false;
 			bmpScreenshot?.Dispose();
 			if (ClientSize.Width <= 0 || ClientSize.Height <= 0) return;

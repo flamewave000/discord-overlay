@@ -15,6 +15,7 @@ namespace DirectXHost
 		private static readonly string SAVE_FILE = "settings.json";
 		[Obsolete]
 		[Serializable]
+#pragma warning disable 0649 // variable is never assigned to
 		private struct Data
 		{
 			public bool overlayClickable;
@@ -26,6 +27,7 @@ namespace DirectXHost
 			public double hostOpacity;
 			public Color transparencyKey;
 		}
+#pragma warning restore 0649 // variable is never assigned to
 		[DataContract]
 		private struct JsonData
 		{
@@ -107,8 +109,10 @@ namespace DirectXHost
 			{
 				using (FileStream stream = new FileStream(OLD_SAVE_FILE, FileMode.OpenOrCreate))
 				{
+#pragma warning disable CS0612 // Type or member is obsolete
 					var oldData = (Data)new BinaryFormatter().Deserialize(stream);
-					// Migrate data for new property
+#pragma warning restore CS0612 // Type or member is obsolete
+							  // Migrate data for new property
 					if (oldData.frameRate == 0)
 						oldData.frameRate = 10;
 					oldData.topMost = true;
