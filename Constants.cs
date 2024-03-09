@@ -1,7 +1,7 @@
 ﻿
 using System.Drawing;
 
-namespace DirectXHost
+namespace DiscordOverlay
 {
 	public static class Constants
 	{

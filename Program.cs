@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DirectXHost
+namespace DiscordOverlay
 {
     static class Program
     {
@@ -10,7 +10,7 @@ namespace DirectXHost
         [STAThread]
         static void Main()
         {
-            DirectXHost dxHost = new DirectXHost();
+            DiscordOverlay dxHost = new DiscordOverlay();
             dxHost.Run().Wait();
         }
     }

@@ -7,7 +7,7 @@ using System.Threading;
 using System.Runtime.Serialization.Json;
 using System.Runtime.Serialization;
 
-namespace DirectXHost
+namespace DiscordOverlay
 {
 	static class Settings
 	{
@@ -137,7 +137,7 @@ namespace DirectXHost
 				data = new JsonData
 				{
 					overlayClickable = true,
-					savePositions = false,
+					savePositions = true,
 					topMost = true,
 					overlayRect = new Rect { Size = new Size(Constants.OverlayStartWidth, Constants.OverlayStartHeight), Point = Point.Empty },
 					containerRect = new Rect { Size = new Size(Constants.StartWidth, Constants.StartHeight), Point = Point.Empty },

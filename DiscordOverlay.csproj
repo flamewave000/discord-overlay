@@ -7,7 +7,7 @@
     <ProjectGuid>{A2948F55-87D4-4512-8805-E12EF75C8B45}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>DirectXHost</RootNamespace>
+    <RootNamespace>DiscordOverlay</RootNamespace>
     <AssemblyName>Discord Overlay</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -49,7 +49,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>DirectXHost.Program</StartupObject>
+    <StartupObject>DiscordOverlay.Program</StartupObject>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>Resources\App.ico</ApplicationIcon>
@@ -91,7 +91,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Constants.cs" />
-    <Compile Include="DirectXHost.cs" />
+    <Compile Include="DiscordOverlay.cs" />
     <Compile Include="Extensions\Direct2DExt.cs" />
     <Compile Include="GraphicsD3D11.cs" />
     <Compile Include="Program.cs" />

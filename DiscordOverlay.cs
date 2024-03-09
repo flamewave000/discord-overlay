@@ -6,16 +6,16 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Linq;
-using DirectXHost.Extensions;
+using DiscordOverlay.Extensions;
 using System.Threading;
 using System.Reflection;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Timers;
 
-namespace DirectXHost
+namespace DiscordOverlay
 {
-	public class DirectXHost : IDisposable
+	public class DiscordOverlay : IDisposable
 	{
 		public const int GWL_EXSTYLE = -20;
 		public const int WS_EX_TOOLWINDOW = 0x00000080;
@@ -500,7 +500,7 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 		}
 
 		// TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-		~DirectXHost()
+		~DiscordOverlay()
 		{
 			// Do not change this code. Put cleanup code in Dispose(bool disposing) above.
 			Dispose(false);

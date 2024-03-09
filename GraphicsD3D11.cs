@@ -7,7 +7,7 @@ using System;
 using D3D11Device = SharpDX.Direct3D11.Device;
 using D2D = SharpDX.Direct2D1;
 
-namespace DirectXHost
+namespace DiscordOverlay
 {
 	internal class GraphicsD3D11 : IDisposable
 	{

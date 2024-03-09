@@ -4,7 +4,7 @@ using SharpDX.DXGI;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 
-namespace DirectXHost.Extensions
+namespace DiscordOverlay.Extensions
 {
     public static class Direct2DExt
     {

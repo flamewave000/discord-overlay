@@ -2,7 +2,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace DirectXHost
+namespace DiscordOverlay
 {
 	internal class UnclickableLabel : Label
 	{
