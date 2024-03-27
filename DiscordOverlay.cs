@@ -340,6 +340,13 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 				Settings.Save();
 			});
 			topMost.Checked = Settings.topMost;
+			var showTaskbar = new MenuItem("Show Overlay in Taskbar", (i, e) =>
+			{
+				Settings.showTaskbar = !Settings.showTaskbar;
+				(i as MenuItem).Checked = Settings.showTaskbar;
+				Settings.Save();
+			});
+			showTaskbar.Checked = Settings.showTaskbar;
 
 			var transparency = new MenuItem("Transparency Colour", (i, e) =>
 			{
@@ -419,7 +426,7 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 			var menu = new MainMenu();
 			menu.MenuItems.AddRange(new MenuItem[] {
 				version,
-				new MenuItem("Behaviour", new MenuItem[] { overlayClickable, savePositions, topMost }),
+				new MenuItem("Behaviour", new MenuItem[] { overlayClickable, savePositions, topMost, showTaskbar }),
 				new MenuItem("Graphics", new MenuItem[] { transparency, framerate, hostOpacity, overlayOpacity }),
 				help
 			});
@@ -443,8 +450,11 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 				{
 					_overlayForm.AllowTransparency = true;
 					_overlayForm.FormBorderStyle = FormBorderStyle.None;
-					SetWindowLong(_overlayForm.Handle, GWL_EXSTYLE, GetWindowLong(_overlayForm.Handle, GWL_EXSTYLE) | WS_EX_TOOLWINDOW);
-					_overlayForm.ShowInTaskbar = false;
+					if (!Settings.showTaskbar)
+					{
+						SetWindowLong(_overlayForm.Handle, GWL_EXSTYLE, GetWindowLong(_overlayForm.Handle, GWL_EXSTYLE) | WS_EX_TOOLWINDOW);
+						_overlayForm.ShowInTaskbar = false;
+					}
 					_overlayForm.BackColor = Settings.transparencyKey;
 					_overlayForm.TransparencyKey = Settings.transparencyKey;
 					_overlayForm.SetFormTransparent();

@@ -34,6 +34,7 @@ namespace DiscordOverlay
 			[DataMember] public bool overlayClickable;
 			[DataMember] public bool savePositions;
 			[DataMember] public bool topMost;
+			[DataMember] public bool showTaskbar;
 			[DataMember] public Rect overlayRect;
 			[DataMember] public Rect containerRect;
 			[DataMember] public int frameRate;
@@ -64,6 +65,11 @@ namespace DiscordOverlay
 		{
 			get => data.topMost;
 			set => data.topMost = value;
+		}
+		public static bool showTaskbar
+		{
+			get => data.showTaskbar;
+			set => data.showTaskbar = value;
 		}
 		public static Rect overlayRect
 		{
@@ -125,7 +131,8 @@ namespace DiscordOverlay
 						containerRect = oldData.containerRect,
 						transparencyKey = oldData.transparencyKey,
 						frameRate = oldData.frameRate,
-						hostOpacity = oldData.hostOpacity
+						hostOpacity = oldData.hostOpacity,
+						showTaskbar = false
 					};
 				}
 				File.Delete(OLD_SAVE_FILE);
@@ -144,7 +151,8 @@ namespace DiscordOverlay
 					transparencyKey = Constants.DefaultTransparencyKey,
 					frameRate = 10,
 					hostOpacity = 1,
-					overlayOpacity = 1
+					overlayOpacity = 1,
+					showTaskbar = false
 				};
 				return;
 			}
