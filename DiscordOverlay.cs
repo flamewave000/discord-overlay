@@ -420,7 +420,7 @@ If you have issues with the window positions/sizes, delete the 'props.bin' file 
 			});
 
 			var help = new MenuItem("?", _dxForm_HelpRequested);
-			var version = new MenuItem($"Version {Application.ProductVersion.Substring(0, Application.ProductVersion.Length - 4)}    |");
+			var version = new MenuItem($"Version {Application.ProductVersion.Substring(0, Application.ProductVersion.Length - 2)}    |");
 			version.Enabled = false;
 
 			var menu = new MainMenu();
