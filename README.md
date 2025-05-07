@@ -1,3 +1,7 @@
+> [!warning]
+> # Obsolete
+> **With the latest changes to Discord, they have fixed the issue my program was meant to solve. Which is to allow you to see a discord overlay over any program. Specifically when playing web games such as on Roll20 or FoundryVTT.**
+
 # Discord Overlay
 
 This overlay host is to provide a desktop overlay for when you're playing games in the browser and still want to see who's talking (such as TTRPGs on FoundryVTT or Roll20).
